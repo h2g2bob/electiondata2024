@@ -31,10 +31,10 @@ def import_file(con, year, filename):
         con.execute(
             "insert into ward_to_blah(ward_id, ward_name, westminster_id, westminster_name, lower_id, lower_name, upper_id, upper_name, years)"
             " values (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-            " on conflict (ward_id) where westminster_id = ? and lower_id = ?"
+            " on conflict (ward_id) where ward_name = ? and westminster_id = ? and lower_id = ?"
             " do update set years = years || ',' || ?, upper_id = coalesce(upper_id, ?), upper_name = coalesce(upper_name, ?)",
             (ward_id, ward_name, westminster_id, westminster_name, lower_id, lower_name, upper_id, upper_name, str(year))
-            + (westminster_id, lower_id)
+            + (ward_name, westminster_id, lower_id)
             + (str(year), upper_id, upper_name),
         )
         if i % 1000 == 0:
