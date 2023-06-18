@@ -29,9 +29,13 @@ def import_file(con, year, filename):
         upper_id = row.get(f"UTLA{yy}CD", None)
         upper_name = row.get(f"UTLA{yy}NM", None)
         con.execute(
-            "insert into ward_to_blah(year, ward_id, ward_name, westminster_id, westminster_name, lower_id, lower_name, upper_id, upper_name)"
-            " values (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (year, ward_id, ward_name, westminster_id, westminster_name, lower_id, lower_name, upper_id, upper_name),
+            "insert into ward_to_blah(ward_id, ward_name, westminster_id, westminster_name, lower_id, lower_name, upper_id, upper_name, years)"
+            " values (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            " on conflict (ward_id) where westminster_id = ? and lower_id = ?"
+            " do update set years = years || ',' || ?, upper_id = coalesce(upper_id, ?), upper_name = coalesce(upper_name, ?)",
+            (ward_id, ward_name, westminster_id, westminster_name, lower_id, lower_name, upper_id, upper_name, str(year))
+            + (westminster_id, lower_id)
+            + (str(year), upper_id, upper_name),
         )
         if i % 1000 == 0:
             print(".", end="", flush=True)
@@ -43,18 +47,16 @@ def main():
         con.execute("drop table if exists ward_to_blah")
         con.execute("""
             create table ward_to_blah(
-                year integer,
-                ward_id text,
-                ward_name text,
-                westminster_id text,
-                westminster_name text,
-                lower_id text,
-                lower_name text,
+                ward_id text primary key,
+                ward_name text unqiue not null,
+                westminster_id text not null,
+                westminster_name text not null,
+                lower_id text not null,
+                lower_name text not null,
                 upper_id text,
-                upper_name text)
+                upper_name text,
+                years text not null)
         """)
-        con.execute("create index if not exists ward_to_blah_ward_id_idx on ward_to_blah (ward_id)")
-        con.execute("create index if not exists ward_to_blah_ward_name_idx on ward_to_blah (ward_name)")
         con.execute("create index ward_to_blah_westminster_id_idx on ward_to_blah (westminster_id);")
         for year, filename in FILE_NAMES.items():
             import_file(con, year, filename)
