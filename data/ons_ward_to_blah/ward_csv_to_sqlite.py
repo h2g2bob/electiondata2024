@@ -2,9 +2,9 @@ from csv import DictReader
 import sqlite3
 
 FILE_NAMES = {
-    # 2018: 'Ward_to_Westminster_Parliamentary_Constituency_to_Local_Authority_District_(December_2018)_Lookup_in_the_United_Kingdom.csv',
-    # 2019: 'Ward_to_Westminster_Parliamentary_Constituency_to_LAD_to_UTLA_(Dec_2019)_Lookup_in_the_UK.csv',
-    # 2020: 'Ward_to_Westminster_Parliamentary_Constituency_to_Local_Authority_District_to_Upper_Tier_Local_Authority_(December_2020)_Lookup_in_the_United_Kingdom_V2.csv',
+    2018: 'Ward_to_Westminster_Parliamentary_Constituency_to_Local_Authority_District_(December_2018)_Lookup_in_the_United_Kingdom.csv',
+    2019: 'Ward_to_Westminster_Parliamentary_Constituency_to_LAD_to_UTLA_(Dec_2019)_Lookup_in_the_UK.csv',
+    2020: 'Ward_to_Westminster_Parliamentary_Constituency_to_Local_Authority_District_to_Upper_Tier_Local_Authority_(December_2020)_Lookup_in_the_United_Kingdom_V2.csv',
     2022: 'Ward_to_Westminster_Parliamentary_Constituency_to_Local_Authority_District_to_Upper_Tier_Local_Authority_(December_2022)_Lookup_in_the_United_Kingdom.csv',
 }
 
@@ -15,15 +15,19 @@ def read_csv_file(filename):
             yield row
 
 def import_file(con, year, filename):
+    yy = f"{year % 100:02d}"
+    # File can start with junk termination characters
+    omg = "\ufeff" if year in (2018, 2022) else ""
+    print(filename, end="", flush=True)
     for i, row in enumerate(read_csv_file(filename)):
-        ward_id = row['\ufeffWD22CD']
-        ward_name = row['WD22NM']
-        westminster_id = row['PCON22CD']
-        westminster_name = row['PCON22NM']
-        lower_id = row['LAD22CD']
-        lower_name = row['LAD22NM']
-        upper_id = row['UTLA22CD']
-        upper_name = row['UTLA22NM']
+        ward_id = row[f"{omg}WD{yy}CD"]
+        ward_name = row[f"WD{yy}NM"]
+        westminster_id = row[f"PCON{yy}CD"]
+        westminster_name = row[f"PCON{yy}NM"]
+        lower_id = row[f"LAD{yy}CD"]
+        lower_name = row[f"LAD{yy}NM"]
+        upper_id = row.get(f"UTLA{yy}CD", None)
+        upper_name = row.get(f"UTLA{yy}NM", None)
         con.execute(
             "insert into ward_to_blah(year, ward_id, ward_name, westminster_id, westminster_name, lower_id, lower_name, upper_id, upper_name)"
             " values (?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -31,6 +35,7 @@ def import_file(con, year, filename):
         )
         if i % 1000 == 0:
             print(".", end="", flush=True)
+    print("")
 
 def main():
     con = sqlite3.connect("../data.sqlite3")
@@ -53,6 +58,7 @@ def main():
         con.execute("create index ward_to_blah_westminster_id_idx on ward_to_blah (westminster_id);")
         for year, filename in FILE_NAMES.items():
             import_file(con, year, filename)
+    print("vacuum...", end="", flush=True)
     con.execute("vacuum")
     print("done")
 
