@@ -4,7 +4,8 @@ from typing import ClassVar
 import re
 import sqlite3
 
-DATE = "2023-05-04"
+YEAR_FILTER = "2022"
+DATE = "2022-05-05"
 FILE_NAME = f"results-{DATE}.csv"
 
 
@@ -29,81 +30,57 @@ def str_to_bool(string):
 class WardMappings:
     mappings: dict
 
-    # https://www.lgbce.org.uk/all-reviews/
-    lgbce_review: ClassVar = (
-        "amber-valley",
-        "bedford",
-        "blaby",
-        "bolton",
-        "bracknell-forest",
-        "brighton-and-hove",
-        "central-bedfordshire",
-        "charnwood",
-        "chesterfield",
-        "derby",
-        "derbyshire-dales",
-        "east-hertfordshire",
-        "east-staffordshire",
-        "epsom-and-ewell",
-        "fenland",
-        "fylde",
-        "gravesham",
-        "guildford",
-        "lancaster",
-        "liverpool",
-        "luton",
-        "malvern-hills",
-        "mansfield",
-        "medway",
-        "mid-devon",
-        "mid-sussex",
-        "mole-valley",
-        "new-forest",
-        "north-kesteven",
-        "north-lincolnshire",
-        "rushcliffe",
-        "slough",
-        "south-staffordshire",
-        "southampton",
-        "stockport",
-        "stockton-on-tees",
-        "stoke-on-trent",
-        "stratford-on-avon",
-        "telford-and-wrekin",
-        "tonbridge-and-malling",
-        "trafford",
-        "waverley",
-        "west-lancashire",
-        "wigan",
-        "wolverhampton",
-        "wychavon",
-    )
-
     @classmethod
     def load(cls, con):
         mappings = {}
-        for row in con.execute("select ward_id, ward_name from ward_to_blah"):
+        for row in con.execute(
+            "select ward_id, ward_name from ward_to_blah where years like ?",
+            ("%" + YEAR_FILTER + "%",),
+        ):
             [ward_id, ward_name] = row
+            # XXX no check about duplicate ward_ids
+            # XXX eg: from constituencies which have been re-numbered from one year to the next
             mappings[cls.normalize(ward_name)] = ward_id
         return cls(mappings=mappings)
 
     def lookup(self, democlub_ballot_paper_id):
         parts = democlub_ballot_paper_id.split(".")
         assert parts[0] == "local"
-        [_local, council, ward, _date] = parts
-        is_boundary_edited = council in self.lgbce_review
+        [_local, _council, ward, _date] = parts
         ons_ward_id = self.mappings.get(self.normalize(ward), None)
-        assert ons_ward_id is not None or is_boundary_edited
-        return (is_boundary_edited, ons_ward_id)
+        assert ons_ward_id is not None, f"what {ward} from {democlub_ballot_paper_id}"
+        return ons_ward_id
 
     @staticmethod
     def normalize(text):
         if text == "westwood-jacksdale":
             return "jacksdalewestwood"
+        if text == "Rhyl T? Newydd":
+            return "rhyltynewydd"
+        if text == "Pen draw Ll?n":
+            return "pendrawllyn"
+        if text == "Tre-garth a Mynydd Llandygái":
+            return "tregarthamynyddllandygai"
+        if text == "Canolbarth Môn":
+            return "canolbarthmon"
+        if text == "Hunmanby & Sherburn (part Scarborough)":
+            return "hunmanbysherburn"
+        if text == "tafs-well":
+            return "taffswell"
         return re.sub(
             r"[^a-z]+", "", text.lower().replace(" and ", "").replace("-and-", "")
         )
 
+upper_tier_elections = [
+    "somerset",
+    "swansea",
+]
+re_upper_tier_elections = re.compile(r"^local\." + "|".join(re.escape(name) for name in upper_tier_elections) + "\.")
+
+problems = [
+    "local.tower-hamlets.bethnal-green-east.2022-05-05",
+    "local.tower-hamlets.bethnal-green-west.2022-05-05",
+]
 
 def main():
     con = sqlite3.connect("../data.sqlite3")
@@ -112,7 +89,7 @@ def main():
 
         con.execute("drop table if exists democlub_results")
         con.execute(
-            "create table democlub_results(date text, election_id text, ballot_paper_id text, party_name text, ballots_cast int, elected bool, ons_ward_id text, lgbce_review bool)"
+            "create table democlub_results(date text, election_id text, ballot_paper_id text, party_name text, ballots_cast int, elected bool, ons_ward_id text)"
         )
         con.execute(
             "create index if not exists democlub_results_election_id_idx on democlub_results (election_id)"
@@ -138,12 +115,18 @@ def main():
             if ballot_paper_id.startswith("mayor."):
                 continue
 
-            [is_boundary_edited, ons_ward_id] = ward_mappings.lookup(ballot_paper_id)
+            if re_upper_tier_elections.search(ballot_paper_id) is not None:
+                continue
+
+            if ballot_paper_id in problems:
+                continue
+
+            ons_ward_id = ward_mappings.lookup(ballot_paper_id)
 
             con.execute(
-                "insert into democlub_results(date, election_id, ballot_paper_id, party_name, ballots_cast, elected, ons_ward_id, lgbce_review)"
-                " values (?, ?, ?, ?, ?, ?, ?, ?)",
-                (date, election_id, ballot_paper_id, party_name, ballots_cast, elected, ons_ward_id, is_boundary_edited),
+                "insert into democlub_results(date, election_id, ballot_paper_id, party_name, ballots_cast, elected, ons_ward_id)"
+                " values (?, ?, ?, ?, ?, ?, ?)",
+                (date, election_id, ballot_paper_id, party_name, ballots_cast, elected, ons_ward_id,),
             )
 
             if i % 1000 == 0:
