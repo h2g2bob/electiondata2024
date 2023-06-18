@@ -26,6 +26,50 @@ def str_to_bool(string):
     raise ValueError(string)
 
 
+def normalize_party_name(party_name):
+    if party_name in ("Labour Party", "Labour and Co-operative Party"):
+        return "L"
+    if party_name == "Conservative and Unionist Party":
+        return "C"
+    if party_name == "Liberal Democrats":
+        return "LD"
+    if party_name == "Green Party":
+        return "G"
+    if party_name == "Independent":
+        return "I"
+    if party_name == "Plaid Cymru - The Party of Wales":
+        return "PC"
+    if party_name == "Trade Unionist and Socialist Coalition":
+        return "TUSC"
+    if (
+        "Residents" in party_name
+        or ("Resident" in party_name and "Association" in party_name)
+        or ("Resident" in party_name and "Group" in party_name)
+    ):
+        return "RA"
+    if party_name == "Britain First":
+        return None
+    if (
+        "Independents" in party_name
+        or "Independent Party" in party_name
+        or "Independent Group" in party_name
+        or party_name.endswith(" First")
+        or party_name.endswith(" First Party")
+        or party_name.endswith(" Matters")
+        or party_name
+        in (
+            "Yorkshire Party",
+            "Tunbridge Wells Alliance",
+            "Proud of Oldham & Saddleworth",
+            "Our West Lancashire",
+            "Coventry Citizens Party",
+            "One Kearsley",
+        )
+    ):
+        return "LOCAL"
+    return None
+
+
 @dataclass
 class WardMappings:
     mappings: dict
@@ -71,16 +115,20 @@ class WardMappings:
             r"[^a-z]+", "", text.lower().replace(" and ", "").replace("-and-", "")
         )
 
+
 upper_tier_elections = [
     "somerset",
     "swansea",
 ]
-re_upper_tier_elections = re.compile(r"^local\." + "|".join(re.escape(name) for name in upper_tier_elections) + "\.")
+re_upper_tier_elections = re.compile(
+    r"^local\." + "|".join(re.escape(name) for name in upper_tier_elections) + "\."
+)
 
 problems = [
     "local.tower-hamlets.bethnal-green-east.2022-05-05",
     "local.tower-hamlets.bethnal-green-west.2022-05-05",
 ]
+
 
 def main():
     con = sqlite3.connect("../data.sqlite3")
@@ -89,7 +137,17 @@ def main():
 
         con.execute("drop table if exists democlub_results")
         con.execute(
-            "create table democlub_results(date text, election_id text, ballot_paper_id text, party_name text, ballots_cast int, elected bool, ons_ward_id text)"
+            """
+            create table democlub_results(
+                date text not null,
+                election_id text not null,
+                ballot_paper_id text not null,
+                party_name text,
+                ballots_cast int,
+                elected bool not null,
+                normalized_party text,
+                ons_ward_id text)
+            """
         )
         con.execute(
             "create index if not exists democlub_results_election_id_idx on democlub_results (election_id)"
@@ -122,11 +180,21 @@ def main():
                 continue
 
             ons_ward_id = ward_mappings.lookup(ballot_paper_id)
+            normalized_party = normalize_party_name(party_name)
 
             con.execute(
-                "insert into democlub_results(date, election_id, ballot_paper_id, party_name, ballots_cast, elected, ons_ward_id)"
-                " values (?, ?, ?, ?, ?, ?, ?)",
-                (date, election_id, ballot_paper_id, party_name, ballots_cast, elected, ons_ward_id,),
+                "insert into democlub_results(date, election_id, ballot_paper_id, party_name, ballots_cast, elected, normalized_party, ons_ward_id)"
+                " values (?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    date,
+                    election_id,
+                    ballot_paper_id,
+                    party_name,
+                    ballots_cast,
+                    elected,
+                    normalized_party,
+                    ons_ward_id,
+                ),
             )
 
             if i % 1000 == 0:
