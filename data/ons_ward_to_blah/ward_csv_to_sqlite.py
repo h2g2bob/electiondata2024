@@ -31,7 +31,7 @@ def import_file(con, year, filename):
         con.execute(
             "insert into ward_to_blah(ward_id, ward_name, westminster_id, westminster_name, lower_id, lower_name, upper_id, upper_name, years)"
             " values (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-            " on conflict (ward_id) where ward_name = ? and westminster_id = ? and lower_id = ?"
+            " on conflict (ward_id, westminster_id) where ward_name = ? and westminster_id = ? and lower_id = ?"
             " do update set years = years || ',' || ?, upper_id = coalesce(upper_id, ?), upper_name = coalesce(upper_name, ?)",
             (ward_id, ward_name, westminster_id, westminster_name, lower_id, lower_name, upper_id, upper_name, str(year))
             + (ward_name, westminster_id, lower_id)
@@ -47,16 +47,21 @@ def main():
         con.execute("drop table if exists ward_to_blah")
         con.execute("""
             create table ward_to_blah(
-                ward_id text primary key,
-                ward_name text unqiue not null,
+                ward_id text not null,
+                ward_name text not null,
                 westminster_id text not null,
                 westminster_name text not null,
                 lower_id text not null,
                 lower_name text not null,
                 upper_id text,
                 upper_name text,
-                years text not null)
+                years text not null,
+
+                -- A ward can be in two westminster constituencies, eg: W05000895,Vaynor
+                -- so we get two rows in the CSV and two database rows
+                primary key (ward_id, westminster_id))
         """)
+        con.execute("create index ward_to_blah_ward_name_idx on ward_to_blah (ward_name);")
         con.execute("create index ward_to_blah_westminster_id_idx on ward_to_blah (westminster_id);")
         for year, filename in FILE_NAMES.items():
             import_file(con, year, filename)
