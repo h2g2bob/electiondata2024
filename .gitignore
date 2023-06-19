@@ -1,4 +1,5 @@
 data/data.sqlite3
 data/democlub_results/results-*.csv
 data/ons_ward_to_blah/*.csv
+data/ons_output_areas/*.csv
 data/postcode_to_ward/postcodes.zip
