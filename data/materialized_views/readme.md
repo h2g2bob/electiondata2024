@@ -19,3 +19,11 @@ Reading West      The Liberal Party             0
 Reading West      TUSC                          0
 Reading West      I                             0
 ```
+
+Some intermediate data is logged:
+
+```
+sqlite> select * from oa_to_westminster2019 c left join vote_percent_per_party_per_oa using (oa21cd) where c.westminster_2019 = 'Reading East' and party = 'I';
+...
+(A list of oa21cd which had elections with independent candidates)
+```
