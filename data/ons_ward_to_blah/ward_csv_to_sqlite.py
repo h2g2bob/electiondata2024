@@ -5,7 +5,9 @@ FILE_NAMES = {
     2018: 'Ward_to_Westminster_Parliamentary_Constituency_to_Local_Authority_District_(December_2018)_Lookup_in_the_United_Kingdom.csv',
     2019: 'Ward_to_Westminster_Parliamentary_Constituency_to_LAD_to_UTLA_(Dec_2019)_Lookup_in_the_UK.csv',
     2020: 'Ward_to_Westminster_Parliamentary_Constituency_to_Local_Authority_District_to_Upper_Tier_Local_Authority_(December_2020)_Lookup_in_the_United_Kingdom_V2.csv',
+    2021: 'WD21_LAD21_UK_LU-from-xlsx.csv',
     2022: 'Ward_to_Westminster_Parliamentary_Constituency_to_Local_Authority_District_to_Upper_Tier_Local_Authority_(December_2022)_Lookup_in_the_United_Kingdom.csv',
+    2023: 'Ward_to_Local_Authority_District_(May_2023)_Lookup_in_the_United_Kingdom.csv',
 }
 
 def read_csv_file(filename):
@@ -17,13 +19,13 @@ def read_csv_file(filename):
 def import_file(con, year, filename):
     yy = f"{year % 100:02d}"
     # File can start with junk termination characters
-    omg = "\ufeff" if year in (2018, 2022) else ""
+    omg = "\ufeff" if year in (2018, 2022, 2023) else ""
     print(filename, end="", flush=True)
     for i, row in enumerate(read_csv_file(filename)):
         ward_id = row[f"{omg}WD{yy}CD"]
         ward_name = row[f"WD{yy}NM"]
-        westminster_id = row[f"PCON{yy}CD"]
-        westminster_name = row[f"PCON{yy}NM"]
+        westminster_id = row.get(f"PCON{yy}CD", None)
+        westminster_name = row.get(f"PCON{yy}NM", None)
         lower_id = row[f"LAD{yy}CD"]
         lower_name = row[f"LAD{yy}NM"]
         upper_id = row.get(f"UTLA{yy}CD", None)
@@ -49,8 +51,8 @@ def main():
             create table ward_to_blah(
                 ward_id text not null,
                 ward_name text not null,
-                westminster_id text not null,
-                westminster_name text not null,
+                westminster_id text,
+                westminster_name text,
                 lower_id text not null,
                 lower_name text not null,
                 upper_id text,
