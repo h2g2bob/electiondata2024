@@ -4,13 +4,8 @@ from typing import ClassVar
 import re
 import sqlite3
 
-YEAR_FILTER = "2022"
-DATE = "2022-05-05"
-FILE_NAME = f"results-{DATE}.csv"
-
-
-def read_csv_file():
-    with open(FILE_NAME, mode="r", encoding="utf8") as myfile:
+def read_csv_file(file_name):
+    with open(file_name, mode="r", encoding="utf8") as myfile:
         csvreader = DictReader(myfile)
         for row in csvreader:
             yield row
@@ -75,16 +70,18 @@ class WardMappings:
     mappings: dict
 
     @classmethod
-    def load(cls, con):
+    def load(cls, con, ward_mapping_year):
         mappings = {}
         for row in con.execute(
             "select ward_id, ward_name from ward_to_blah where years like ?",
-            ("%" + YEAR_FILTER + "%",),
+            ("%" + ward_mapping_year + "%",),
         ):
             [ward_id, ward_name] = row
             # XXX no check about duplicate ward_ids
             # XXX eg: from constituencies which have been re-numbered from one year to the next
             mappings[cls.normalize(ward_name)] = ward_id
+        if not mappings:
+            raise RuntimeError(f"No values in ward_to_blah for {ward_mapping_year}. Import ons_ward_to_blah before the democlub_results import.")
         return cls(mappings=mappings)
 
     def lookup(self, democlub_ballot_paper_id):
@@ -133,8 +130,6 @@ problems = [
 def main():
     con = sqlite3.connect("../data.sqlite3")
     with con:
-        ward_mappings = WardMappings.load(con)
-
         con.execute("drop table if exists democlub_results")
         con.execute(
             """
@@ -158,8 +153,20 @@ def main():
         con.execute(
             "create index if not exists democlub_results_ons_ward_id_idx on democlub_results (ons_ward_id)"
         )
-        for i, row in enumerate(read_csv_file()):
-            date = DATE
+
+        import_democlub(con, "2022-05-05", "2022")
+
+    print("vacuum")
+    con.execute("vacuum")
+    print("done")
+
+def import_democlub(con, date: str, ward_mapping_year: str):
+        file_name = f"results-{date}.csv"
+        print(file_name)
+
+        ward_mappings = WardMappings.load(con, ward_mapping_year)
+
+        for i, row in enumerate(read_csv_file(file_name)):
             election_id = row["election_id"]
             ballot_paper_id = row["ballot_paper_id"]
             party_name = row["party_name"]
@@ -196,11 +203,6 @@ def main():
                     ons_ward_id,
                 ),
             )
-
-            if i % 1000 == 0:
-                print(".", end="", flush=True)
-    con.execute("vacuum")
-    print("done")
 
 
 if __name__ == "__main__":
