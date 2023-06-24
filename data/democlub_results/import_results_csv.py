@@ -108,17 +108,18 @@ class WardMappings:
             return "hunmanbysherburn"
         if text == "tafs-well":
             return "taffswell"
-        if text == "Littledown and Iford" or text == "littledown-iford":
-            return "littledownilford"
+        if text == "Littledown & Ilford":
+            return "littledowniford"
         return re.sub(
             r"[^a-z]+", "", text.lower().replace(" and ", "").replace("-and-", "")
         )
 
 
-# County Councils (upper) have larger wards than District Councils (lower)
-# and it's hard to find data about what these wards are
-# so lets skip them
-upper_tier_elections = [
+ignore_elections = [
+    # County Councils (upper) have larger wards than District Councils (lower)
+    # and it's hard to find data about what these wards are
+    # so lets skip them
+    "cambridgeshire",
     "derbyshire",
     "devon",
     "east-sussex",
@@ -134,40 +135,35 @@ upper_tier_elections = [
     "nottinghamshire",
     "oxfordshire",
     "somerset",
+    "staffordshire",
+    "suffolk",
     "surrey",
     "swansea",
+    "warwickshire",
     "west-sussex",
     "worcestershire",
+
+    # Northern ireland regions
+    # (I think the ward data doesn't cover northern ireland?)
+    "antrim-and-newtownabbey",
+    "ards-and-north-down",
+    "armagh-city-banbridge-and-craigavon",
+    "belfast",
+    "causeway-coast-and-glens",
+    "derry-city-and-strabane",
+    "fermanagh-and-omagh",
+    "lisburn-and-castlereagh",
+    "mid-and-east-antrim",
+    "mid-ulster",
+    "newry-mourne-and-down",
 ]
-re_upper_tier_elections = re.compile(
-    r"^local\." + "|".join(re.escape(name) for name in upper_tier_elections) + "\."
+re_ignore_elections = re.compile(
+    r"^local\." + "|".join(re.escape(name) for name in ignore_elections) + "\."
 )
 
 problems = [
     "local.tower-hamlets.bethnal-green-east.2022-05-05",
     "local.tower-hamlets.bethnal-green-west.2022-05-05",
-
-    "local.gosport.bridgemary-north.2021-05-06",
-    "local.gosport.bridgemary-south.2021-05-06",
-    "local.gosport.brockhurst.2021-05-06",
-    "local.gosport.leesland.2021-05-06",
-    "local.gosport.privett.2021-05-06",
-    "local.kent.maidstone-central.2021-05-06",
-]
-
-problem_elections = [
-    # I think we only have ONS data for England and Wales
-    "local.antrim-and-newtownabbey",
-    "local.ards-and-north-down.",
-    "local.armagh-city-banbridge-and-craigavon.",
-    "local.belfast.",
-    "local.causeway-coast-and-glens.",
-    "local.derry-city-and-strabane.",
-    "local.fermanagh-and-omagh.",
-    "local.lisburn-and-castlereagh.",
-    "local.mid-and-east-antrim.",
-    "local.mid-ulster.",
-    "local.newry-mourne-and-down.",
 ]
 
 
@@ -201,9 +197,9 @@ def main():
         election_date_to_ons_date = {
             "2018-05-03": "2018",
             "2019-05-02": "2019",
-            # "2021-05-06": "2022",
+            "2021-05-06": "2021",
             "2022-05-05": "2022",
-            # "2023-05-04": "2022",
+            "2023-05-04": "2023",
         }
         for election_date, ons_date in election_date_to_ons_date.items():
             import_democlub(con, election_date, ons_date)
@@ -233,17 +229,15 @@ def import_democlub(con, date: str, ward_mapping_year: str):
                 continue
 
             other_elections = [
-                "mayor.",
                 "gla.",
+                "mayor.",
+                "senedd.",
                 "sp.",
             ]
             if any(ballot_paper_id.startswith(prefix) for prefix in other_elections):
                 continue
 
-            if re_upper_tier_elections.search(ballot_paper_id) is not None:
-                continue
-
-            if any(ballot_paper_id.startswith(prefix) for prefix in problem_elections):
+            if re_ignore_elections.search(ballot_paper_id) is not None:
                 continue
 
             if ballot_paper_id in problems:
