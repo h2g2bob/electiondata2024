@@ -86,10 +86,10 @@ class WardMappings:
 
     def lookup(self, democlub_ballot_paper_id):
         parts = democlub_ballot_paper_id.split(".")
-        assert parts[0] == "local"
+        assert parts[0] == "local", f"What election is {democlub_ballot_paper_id}"
         [_local, _council, ward, _date] = parts
         ons_ward_id = self.mappings.get(self.normalize(ward), None)
-        assert ons_ward_id is not None, f"what {ward} from {democlub_ballot_paper_id}"
+        assert ons_ward_id is not None, f"what {ward} from {democlub_ballot_paper_id}: check ward_to_blah for similar names"
         return ons_ward_id
 
     @staticmethod
@@ -108,14 +108,36 @@ class WardMappings:
             return "hunmanbysherburn"
         if text == "tafs-well":
             return "taffswell"
+        if text == "Littledown and Iford" or text == "littledown-iford":
+            return "littledownilford"
         return re.sub(
             r"[^a-z]+", "", text.lower().replace(" and ", "").replace("-and-", "")
         )
 
 
+# County Councils (upper) have larger wards than District Councils (lower)
+# and it's hard to find data about what these wards are
+# so lets skip them
 upper_tier_elections = [
+    "derbyshire",
+    "devon",
+    "east-sussex",
+    "essex",
+    "gloucestershire",
+    "hampshire",
+    "hertfordshire",
+    "kent",
+    "lancashire",
+    "leicestershire",
+    "lincolnshire",
+    "norfolk",
+    "nottinghamshire",
+    "oxfordshire",
     "somerset",
+    "surrey",
     "swansea",
+    "west-sussex",
+    "worcestershire",
 ]
 re_upper_tier_elections = re.compile(
     r"^local\." + "|".join(re.escape(name) for name in upper_tier_elections) + "\."
@@ -124,6 +146,28 @@ re_upper_tier_elections = re.compile(
 problems = [
     "local.tower-hamlets.bethnal-green-east.2022-05-05",
     "local.tower-hamlets.bethnal-green-west.2022-05-05",
+
+    "local.gosport.bridgemary-north.2021-05-06",
+    "local.gosport.bridgemary-south.2021-05-06",
+    "local.gosport.brockhurst.2021-05-06",
+    "local.gosport.leesland.2021-05-06",
+    "local.gosport.privett.2021-05-06",
+    "local.kent.maidstone-central.2021-05-06",
+]
+
+problem_elections = [
+    # I think we only have ONS data for England and Wales
+    "local.antrim-and-newtownabbey",
+    "local.ards-and-north-down.",
+    "local.armagh-city-banbridge-and-craigavon.",
+    "local.belfast.",
+    "local.causeway-coast-and-glens.",
+    "local.derry-city-and-strabane.",
+    "local.fermanagh-and-omagh.",
+    "local.lisburn-and-castlereagh.",
+    "local.mid-and-east-antrim.",
+    "local.mid-ulster.",
+    "local.newry-mourne-and-down.",
 ]
 
 
@@ -154,7 +198,15 @@ def main():
             "create index if not exists democlub_results_ons_ward_id_idx on democlub_results (ons_ward_id)"
         )
 
-        import_democlub(con, "2022-05-05", "2022")
+        election_date_to_ons_date = {
+            "2018-05-03": "2018",
+            "2019-05-02": "2019",
+            # "2021-05-06": "2022",
+            "2022-05-05": "2022",
+            # "2023-05-04": "2022",
+        }
+        for election_date, ons_date in election_date_to_ons_date.items():
+            import_democlub(con, election_date, ons_date)
 
     print("vacuum")
     con.execute("vacuum")
@@ -171,16 +223,27 @@ def import_democlub(con, date: str, ward_mapping_year: str):
             ballot_paper_id = row["ballot_paper_id"]
             party_name = row["party_name"]
             ballots_cast = int(row["ballots_cast"])
-            elected = str_to_bool(row["elected"])
+            try:
+                elected = str_to_bool(row["elected"])
+            except KeyError:
+                elected = str_to_bool(row["is_winner"])
 
             is_by_election = ".by." in ballot_paper_id
             if is_by_election:
                 continue
 
-            if ballot_paper_id.startswith("mayor."):
+            other_elections = [
+                "mayor.",
+                "gla.",
+                "sp.",
+            ]
+            if any(ballot_paper_id.startswith(prefix) for prefix in other_elections):
                 continue
 
             if re_upper_tier_elections.search(ballot_paper_id) is not None:
+                continue
+
+            if any(ballot_paper_id.startswith(prefix) for prefix in problem_elections):
                 continue
 
             if ballot_paper_id in problems:
