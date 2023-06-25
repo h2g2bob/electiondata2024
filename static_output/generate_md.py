@@ -45,9 +45,19 @@ def main():
                     print_end(con, old_constituency)
                 old_constituency = constituency
                 print(f"## {constituency}")
-            print(f"- {vote_pct}% {party}")
+            blocklen = (vote_pct * 15) // 100
+            colorbar = f'<font color="{party_color(party)}">{"■" * blocklen}{"□" * (15 - blocklen)}</font>'
+            print(f"- {colorbar} {vote_pct}% {party}")
 
         print_end(con, constituency)
+
+def party_color(party):
+    return {
+        "L": "#DC241F",
+        "LD": "#FAA61A",
+        "G": "#6AB023",
+        "C": "#0087DC",
+    }.get(party, "black")
 
 def print_end(con, constituency):
     ballot_ids = set()
@@ -55,10 +65,16 @@ def print_end(con, constituency):
         [ballot_ids_str, _oa21cd] = row
         ballot_ids |= set(ballot_ids_str.split(","))
     print("")
+    print("<details><summary>Details</summary>")
+    print("")
     print("Based on elections:")
     print("")
+    print("<ul>")
     for ballot_id in sorted(ballot_ids):
-        print(f"- {ballot_id}")
+        print(f"<li>{ballot_id}</li>")
+    print("</ul>")
+    print("")
+    print("</details>")
     print("")
 
 if __name__ == "__main__":
