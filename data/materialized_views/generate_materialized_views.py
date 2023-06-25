@@ -58,31 +58,65 @@ PER_W2019_SQL = """
 -- Find the vote share in each westminster constituency by taking an average
 -- of out vote share estimate in each output_area (as output_areas are all
 -- about the same size)
+with
+vote_pct_per_ons_per_w2019 as (
+  select
+    c.westminster_2019,
+    oa_vote_pct.party,
+    oa_vote_pct.oa21cd,
+    oa_vote_pct.vote_percent
+  from oa_to_westminster2019 c
+  join vote_percent_per_party_per_oa oa_vote_pct on c.oa21cd = oa_vote_pct.oa21cd
+  where c.westminster_2019 = ?
+),
+oa_per_w2019 as (
+  select
+    westminster_2019,
+    count(distinct oa21cd) as distinct_oa_in_w2019
+  from vote_pct_per_ons_per_w2019
+  group by 1
+)
 select
-  c.westminster_2019,
-  oa_vote_pct.party,
-  -- vote percent as an average of the percentages of all OAs:
-  sum(oa_vote_pct.vote_percent) / count(distinct oa21cd) as vote_percent
-from vote_percent_per_party_per_oa oa_vote_pct
-left join oa_to_westminster2019 c using (oa21cd)
+  westminster_2019,
+  party,
+  -- average vote percent as sum(percent for each OA) / count(OA)
+  sum(vote_percent) / (select distinct_oa_in_w2019 from oa_per_w2019 where oa_per_w2019.westminster_2019 = vote_pct_per_ons_per_w2019.westminster_2019) as vote_percent
+from vote_pct_per_ons_per_w2019
 group by westminster_2019, party
-order by westminster_2019, vote_percent desc
+order by westminster_2019, vote_percent desc;
 """
 
 PER_BCE_REVISED_SQL = """
 -- Find the vote share in each proposed constituency by taking an average
 -- of out vote share estimate in each output_area (as output_areas are all
 -- about the same size)
+with
+vote_pct_per_ons_per_revised as (
+  select
+    bce.revised,
+    oa_vote_pct.party,
+    oa_vote_pct.oa21cd,
+    oa_vote_pct.vote_percent
+  from bce_proposed bce
+  join ons_oa_to_ward oas_in_revised on bce.ward_id = oas_in_revised.ward_id
+  join vote_percent_per_party_per_oa oa_vote_pct on oas_in_revised.oa21cd = oa_vote_pct.oa21cd
+  where bce.revised = ?
+),
+oa_per_revised as (
+  select
+    revised,
+    count(distinct oa21cd) as distinct_oa_in_revised
+  from vote_pct_per_ons_per_revised
+  group by 1
+)
 select
-  bce.revised,
-  oa_vote_pct.party,
-  -- vote percent as an average of the percentages of all OAs:
-  sum(oa_vote_pct.vote_percent) / count(distinct oa_vote_pct.oa21cd) as vote_percent
-from vote_percent_per_party_per_oa oa_vote_pct
-left join ons_oa_to_ward oa_to_w on oa_vote_pct.oa21cd = oa_to_w.oa21cd
-left join bce_proposed bce on bce.ward_id = oa_to_w.ward_id
+  revised,
+  party,
+  -- average vote percent as sum(percent for each OA) / count(OA)
+  sum(vote_percent) / (select distinct_oa_in_revised from oa_per_revised where oa_per_revised.revised = vote_pct_per_ons_per_revised.revised) as vote_percent
+from vote_pct_per_ons_per_revised
 group by revised, party
-order by revised, vote_percent desc
+order by revised, vote_percent desc;
 """
 
 def main():
@@ -103,14 +137,40 @@ def main():
         )
 
         print("Generating combined_local_votes_to_westminster_2019")
-        con.execute(
-            "create table combined_local_votes_to_westminster_2019 as " + PER_W2019_SQL
-        )
+        con.execute("""
+            create table combined_local_votes_to_westminster_2019 (
+                westminster_2019 text not null,
+                party text not null,
+                vote_percent integer not null,
+                primary key (westminster_2019, party)
+            )
+        """)
+        for row in list(con.execute("select distinct c.westminster_2019 from oa_to_westminster2019 c")):
+            print(".", end="", flush=True)
+            [w2019] = row
+            con.execute(
+                "insert into combined_local_votes_to_westminster_2019 " + PER_W2019_SQL,
+                (w2019,)
+            )
+        print("")
 
         print("Generating combined_local_votes_to_revised")
-        con.execute(
-            "create table combined_local_votes_to_revised as " + PER_BCE_REVISED_SQL
-        )
+        con.execute("""
+            create table combined_local_votes_to_revised (
+                revised text not null,
+                party text not null,
+                vote_percent integer not null,
+                primary key (revised, party)
+            )
+        """)
+        for row in list(con.execute("select distinct bce.revised from bce_proposed bce")):
+            print(".", end="", flush=True)
+            [revised] = row
+            con.execute(
+                "insert into combined_local_votes_to_revised " + PER_BCE_REVISED_SQL,
+                (revised,)
+            )
+        print("")
 
     print("vacuum")
     con.execute("vacuum")
