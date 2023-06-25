@@ -34,6 +34,8 @@ def main():
     print("- Contains data from Office for National Statistics licensed under the Open Government Licence v.3.0")
     print("- Hastily calculated by David Batley - my contribution cc-by 4.0")
     print("")
+    print("For details on how this is calculated, read https://github.com/h2g2bob/electiondata2024")
+    print("")
     con = sqlite3.connect("../data/data.sqlite3")
     with con:
         old_constituency = None
