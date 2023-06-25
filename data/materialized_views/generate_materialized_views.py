@@ -69,6 +69,22 @@ group by westminster_2019, party
 order by westminster_2019, vote_percent desc
 """
 
+PER_BCE_REVISED_SQL = """
+-- Find the vote share in each proposed constituency by taking an average
+-- of out vote share estimate in each output_area (as output_areas are all
+-- about the same size)
+select
+  bce.revised,
+  oa_vote_pct.party,
+  -- vote percent as an average of the percentages of all OAs:
+  sum(oa_vote_pct.vote_percent) / count(distinct oa_vote_pct.oa21cd) as vote_percent
+from vote_percent_per_party_per_oa oa_vote_pct
+left join ons_oa_to_ward oa_to_w on oa_vote_pct.oa21cd = oa_to_w.oa21cd
+left join bce_proposed bce on bce.ward_id = oa_to_w.ward_id
+group by revised, party
+order by revised, vote_percent desc
+"""
+
 def main():
     con = sqlite3.connect("../data.sqlite3")
     with con:
@@ -89,6 +105,11 @@ def main():
         print("Generating combined_local_votes_to_westminster_2019")
         con.execute(
             "create table combined_local_votes_to_westminster_2019 as " + PER_W2019_SQL
+        )
+
+        print("Generating combined_local_votes_to_revised")
+        con.execute(
+            "create table combined_local_votes_to_revised as " + PER_BCE_REVISED_SQL
         )
 
     print("vacuum")

@@ -4,8 +4,9 @@ Order of running scripts:
 
 1. run `ons_output_areas` and `ons_ward_to_blah`
 2. run `democlub_results`
-3. run `materialized_views`
-4. run `postcode_to_ward` (if you want postcode lookups)
+3. run `bce_2023_review`
+4. run `materialized_views`
+5. run `postcode_to_ward` (if you want postcode lookups)
 
 For each subdirectory:
 
