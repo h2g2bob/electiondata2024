@@ -51,7 +51,16 @@ select distinct
   w.westminster_name as westminster_2019,
   a.oa21cd
 from ward_to_blah w
-left join ons_oa_to_ward a on a.ward_id = w.ward_id
+join ons_oa_to_ward a using (ward_id)
+"""
+
+OA_TO_REVISED = """
+-- find the proposed constituency (or constituencies) for each output_area
+select distinct
+  bce.revised as revised,
+  a.oa21cd
+from bce_proposed bce
+join ons_oa_to_ward a using (ward_id)
 """
 
 PER_W2019_SQL = """
@@ -97,9 +106,8 @@ vote_pct_per_ons_per_revised as (
     oa_vote_pct.party,
     oa_vote_pct.oa21cd,
     oa_vote_pct.vote_percent
-  from bce_proposed bce
-  join ons_oa_to_ward oas_in_revised on bce.ward_id = oas_in_revised.ward_id
-  join vote_percent_per_party_per_oa oa_vote_pct on oas_in_revised.oa21cd = oa_vote_pct.oa21cd
+  from oa_to_revised bce
+  join vote_percent_per_party_per_oa oa_vote_pct on bce.oa21cd = oa_vote_pct.oa21cd
   where bce.revised = ?
 ),
 oa_per_revised as (
@@ -122,21 +130,26 @@ order by revised, vote_percent desc;
 def main():
     con = sqlite3.connect("../data.sqlite3")
     with con:
-        con.execute("drop table if exists oa_to_westminster2019")
-        con.execute("drop table if exists vote_percent_per_party_per_oa")
-        con.execute("drop table if exists combined_local_votes_to_westminster_2019")
-
         print("Generating oa_to_westminster2019")
+        con.execute("drop table if exists oa_to_westminster2019")
         con.execute(
             "create table oa_to_westminster2019 as " + OA_TO_W2019
         )
 
+        print("Generating oa_to_revised")
+        con.execute("drop table if exists oa_to_revised")
+        con.execute(
+            "create table oa_to_revised as " + OA_TO_REVISED
+        )
+
         print("Generating vote_percent_per_party_per_oa")
+        con.execute("drop table if exists vote_percent_per_party_per_oa")
         con.execute(
             "create table vote_percent_per_party_per_oa as " + PER_OA_SQL
         )
 
         print("Generating combined_local_votes_to_westminster_2019")
+        con.execute("drop table if exists combined_local_votes_to_westminster_2019")
         con.execute("""
             create table combined_local_votes_to_westminster_2019 (
                 westminster_2019 text not null,
@@ -145,16 +158,17 @@ def main():
                 primary key (westminster_2019, party)
             )
         """)
-        for row in list(con.execute("select distinct c.westminster_2019 from oa_to_westminster2019 c")):
-            print(".", end="", flush=True)
-            [w2019] = row
+        westminsters = [w2019 for [w2019] in con.execute("select distinct c.westminster_2019 from oa_to_westminster2019 c")]
+        print("")
+        for i, w2019 in enumerate(westminsters):
+            print(f"\x1b[1A{i+1:3d}/{len(westminsters):3d}")
             con.execute(
                 "insert into combined_local_votes_to_westminster_2019 " + PER_W2019_SQL,
                 (w2019,)
             )
-        print("")
 
         print("Generating combined_local_votes_to_revised")
+        con.execute("drop table if exists combined_local_votes_to_revised")
         con.execute("""
             create table combined_local_votes_to_revised (
                 revised text not null,
@@ -163,14 +177,14 @@ def main():
                 primary key (revised, party)
             )
         """)
-        for row in list(con.execute("select distinct bce.revised from bce_proposed bce")):
-            print(".", end="", flush=True)
-            [revised] = row
+        reviseds = [w2019 for [w2019] in con.execute("select distinct bce.revised from bce_proposed bce")]
+        print("")
+        for i, revised in enumerate(reviseds):
+            print(f"\x1b[1A{i+1:3d}/{len(reviseds):3d}")
             con.execute(
                 "insert into combined_local_votes_to_revised " + PER_BCE_REVISED_SQL,
                 (revised,)
             )
-        print("")
 
     print("vacuum")
     con.execute("vacuum")
