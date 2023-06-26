@@ -23,25 +23,19 @@ def str_to_bool(string):
 
 def normalize_party_name(party_name):
     if party_name in ("Labour Party", "Labour and Co-operative Party"):
-        return "L"
+        return "Labour"
     if party_name == "Conservative and Unionist Party":
-        return "C"
+        return "Conservative"
     if party_name == "Liberal Democrats":
-        return "LD"
+        return "Liberal Democrats"
     if party_name == "Green Party":
-        return "G"
+        return "Green"
     if party_name == "Independent":
-        return "I"
+        return "Independent"
     if party_name == "Plaid Cymru - The Party of Wales":
-        return "PC"
+        return "Plaid Cymru"
     if party_name == "Trade Unionist and Socialist Coalition":
         return "TUSC"
-    if (
-        "Residents" in party_name
-        or ("Resident" in party_name and "Association" in party_name)
-        or ("Resident" in party_name and "Group" in party_name)
-    ):
-        return "RA"
     return None
 
 

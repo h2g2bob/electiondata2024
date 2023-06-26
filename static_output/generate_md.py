@@ -55,10 +55,10 @@ def main():
 
 def party_color(party):
     return {
-        "L": "#DC241F",
-        "LD": "#FAA61A",
-        "G": "#6AB023",
-        "C": "#0087DC",
+        "Labour": "#DC241F",
+        "Liberal Democrats": "#FAA61A",
+        "Green": "#6AB023",
+        "Conservative": "#0087DC",
     }.get(party, "black")
 
 def print_end(con, constituency):
