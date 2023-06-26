@@ -41,5 +41,9 @@ other.
 # Caveats
 
 - Turnout is ignored: if one ward has high turnout and another low turnout, I'll average them with equal weight
-- Numbers are rounded down at several points, so percentages add up to less than 100%.
+- People sometimes vote differently at local elections and general elections, for example [Gainsborough] has a Lib Dem
+  council and Labour MP.
+- Numbers are rounded down in some intermediate stages, so percentages can add up to less than 100%.
 - I've ignored Scotland, Wales and Northern Ireland.
+
+[Gainsborough]: https://en.wikipedia.org/wiki/Gainsborough_(UK_Parliament_constituency)
