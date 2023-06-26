@@ -48,14 +48,14 @@ PER_PARTY_W2019 = """
 def main():
     [_, mode] = sys.argv
     if mode == "w2019":
-        generate(SQL_W2019, PER_PARTY_W2019)
+        generate("the 2019 general election", SQL_W2019, PER_PARTY_W2019)
     elif mode == "revised":
-        generate(SQL_REVISED, PER_PARTY_REVISED)
+        generate("the revised proposals", SQL_REVISED, PER_PARTY_REVISED)
     else:
         raise ValueError(mode)
 
-def generate(sql, per_pary_sql):
-    print("# Vote share at local elections for BCE revised proposals")
+def generate(title, sql, per_pary_sql):
+    print(f"# Local election vote share, applied to constituency boundaries from {title}")
     print("")
     print("- Contains National Statistics data © Crown copyright and database rights 2023")
     print("- Contains OS data © Crown copyright and database right 2022, 2023")
