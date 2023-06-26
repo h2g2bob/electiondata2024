@@ -28,13 +28,14 @@ def main():
     print("")
     print("- Contains National Statistics data © Crown copyright and database rights 2023")
     print("- Contains OS data © Crown copyright and database right 2022, 2023")
-    print("- Contains Royal Mail data © Royal Mail copyright and database right 2023")
-    print("- Contains data from Wikipedia covered by the Creative Commons license ")
-    print("- Contains data from Democracy Club provided under the Attribution 4.0 print("") licence.")
+    # We don't use postcode data on this page
+    # print("- Contains Royal Mail data © Royal Mail copyright and database right 2023")
+    # print("- Contains data from Wikipedia covered by the Creative Commons license ")
+    print("- Contains data from Democracy Club provided under the Attribution 4.0 licence.")
     print("- Contains data from Office for National Statistics licensed under the Open Government Licence v.3.0")
     print("- Hastily calculated by David Batley - my contribution cc-by 4.0")
     print("")
-    print("For details on how this is calculated, read https://github.com/h2g2bob/electiondata2024")
+    print("For details on how this is calculated, read [https://github.com/h2g2bob/electiondata2024]")
     print("")
     con = sqlite3.connect("../data/data.sqlite3")
     with con:
