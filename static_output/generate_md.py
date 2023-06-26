@@ -1,8 +1,9 @@
 # python -m markdown -f bce_revised.html bce_revised.md
 
 import sqlite3
+import sys
 
-SQL = """
+SQL_REVISED = """
     select
         revised,
         case when vote_percent >= 5 then party else 'Other' end as party,
@@ -13,7 +14,7 @@ SQL = """
     order by 1,3 desc
 """
 
-PER_PARTY = """
+PER_PARTY_REVISED = """
     select
         oa_vote_pct.ballot_paper_ids,
         oa_vote_pct.oa21cd
@@ -23,7 +24,37 @@ PER_PARTY = """
     where bce.revised = ?
 """
 
+SQL_W2019 = """
+    select
+        westminster_2019,
+        case when vote_percent >= 5 then party else 'Other' end as party,
+        sum(vote_percent) as vote_percent
+    from combined_local_votes_to_westminster_2019
+    where westminster_2019 is not null
+    group by 1,2
+    order by 1,3 desc
+"""
+
+PER_PARTY_W2019 = """
+    select
+        oa_vote_pct.ballot_paper_ids,
+        oa_vote_pct.oa21cd
+    from vote_percent_per_party_per_oa oa_vote_pct
+    left join ons_oa_to_ward oa_to_w on oa_vote_pct.oa21cd = oa_to_w.oa21cd
+    left join ward_to_blah blah on blah.ward_id = oa_to_w.ward_id
+    where blah.westminster_name = ?
+"""
+
 def main():
+    [_, mode] = sys.argv
+    if mode == "w2019":
+        generate(SQL_W2019, PER_PARTY_W2019)
+    elif mode == "revised":
+        generate(SQL_REVISED, PER_PARTY_REVISED)
+    else:
+        raise ValueError(mode)
+
+def generate(sql, per_pary_sql):
     print("# Vote share at local elections for BCE revised proposals")
     print("")
     print("- Contains National Statistics data © Crown copyright and database rights 2023")
@@ -40,19 +71,19 @@ def main():
     con = sqlite3.connect("../data/data.sqlite3")
     with con:
         old_constituency = None
-        rows = tuple(con.execute(SQL))
+        rows = tuple(con.execute(sql))
         for row in rows:
             [constituency, party, vote_pct] = row
             if constituency != old_constituency:
                 if old_constituency is not None:
-                    print_end(con, old_constituency)
+                    print_end(con, per_pary_sql, old_constituency)
                 old_constituency = constituency
                 print(f"## {constituency}")
             blocklen = (vote_pct * 15) // 100
             colorbar = f'<font color="{party_color(party)}">{"■" * blocklen}{"□" * (15 - blocklen)}</font>'
             print(f"- {colorbar} {vote_pct}% {party}")
 
-        print_end(con, constituency)
+        print_end(con, per_pary_sql, constituency)
 
 def party_color(party):
     return {
@@ -62,9 +93,9 @@ def party_color(party):
         "Conservative": "#0087DC",
     }.get(party, "black")
 
-def print_end(con, constituency):
+def print_end(con, per_pary_sql, constituency):
     ballot_ids = set()
-    for row in con.execute(PER_PARTY, (constituency,)):
+    for row in con.execute(per_pary_sql, (constituency,)):
         [ballot_ids_str, _oa21cd] = row
         ballot_ids |= set(ballot_ids_str.split(","))
     print("")
