@@ -42,26 +42,6 @@ def normalize_party_name(party_name):
         or ("Resident" in party_name and "Group" in party_name)
     ):
         return "RA"
-    if party_name == "Britain First":
-        return None
-    if (
-        "Independents" in party_name
-        or "Independent Party" in party_name
-        or "Independent Group" in party_name
-        or party_name.endswith(" First")
-        or party_name.endswith(" First Party")
-        or party_name.endswith(" Matters")
-        or party_name
-        in (
-            "Yorkshire Party",
-            "Tunbridge Wells Alliance",
-            "Proud of Oldham & Saddleworth",
-            "Our West Lancashire",
-            "Coventry Citizens Party",
-            "One Kearsley",
-        )
-    ):
-        return "LOCAL"
     return None
 
 
