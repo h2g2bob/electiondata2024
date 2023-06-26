@@ -22,9 +22,11 @@ Sadly, there are details:
 - different local authorities have different types of election, but constituencies can cross local authority boundares
 - some local authorities have wards of different sizes, where larger wards elect two or three councilors
   (eg: [Tendring])
-- sometimes ward boundaries are changed, eg: by the [LGBCE]. Not everything is listed on the LGBCE page: Reading
-  changed the ward boundaries in 2019, but this isn't listed?!
-- Suffolk Coastal and Waveney merged to become East Suffolk, and this changed all the ward boundaries.
+- sometimes ward boundaries are changed. This is normally done by the [LGBCE], although not everything is included
+  on their website (eg: Reading).
+- District councils get merged or changed. For example [Cumbria County Council was replaced by two unitary authorities],
+  which also changed all the ward boundaries. You can see the effect of this where Carlisle constituency includes
+  elections from both Carlisle District Council and Cumberland Unitary Authority.
 
 The solution to this is to count things by ONS Output Areas (OA), ie: track which elections an OA has participated in.
 This is useful because OA all contain approximately the same number of people.
@@ -34,6 +36,7 @@ other.
 
 [Tendring]: https://tdcdemocracy.tendringdc.gov.uk/mgMemberIndex.aspx?FN=WARD&VW=LIST&PIC=0
 [LGBCE]: https://www.lgbce.org.uk/all-reviews
+[Cumbria County Council was replaced by two unitary authorities]: https://en.wikipedia.org/wiki/2019%E2%80%932023_structural_changes_to_local_government_in_England#Cumbria
 
 # Caveats
 
