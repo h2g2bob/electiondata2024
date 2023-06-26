@@ -158,7 +158,7 @@ ignore_elections = [
     "newry-mourne-and-down",
 ]
 re_ignore_elections = re.compile(
-    r"^local\." + "|".join(re.escape(name) for name in ignore_elections) + "\."
+    r"^local\.(" + "|".join(re.escape(name) for name in ignore_elections) + ")\."
 )
 
 problems = [
