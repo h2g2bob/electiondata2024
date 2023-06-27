@@ -71,6 +71,7 @@ def generate(shorttitle, sql, per_pary_sql):
         "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />"
         "<meta name=\"robots\" content=\"noodp,noydir\"/>"
         "<meta property=\"og:locale\" content=\"en_GB\" />"
+        "<style>@font-face { font-family: \"Atkinson Hyperlegible\"; src: local(\"Atkinson Hyperlegible\"), url(Atkinson-Hyperlegible-Regular-102.woff) format(\"woff\") } body { font-family: \"Atkinson Hyperlegible\"; }</style>"
         "</head>"
         "<body>"
         f"<h1>{fulltitle}</h1>"
