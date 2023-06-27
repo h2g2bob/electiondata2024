@@ -88,7 +88,9 @@ def generate(shorttitle, sql, per_pary_sql):
     print("<p>For details on how this is calculated, read <a href=\"https://github.com/h2g2bob/electiondata2024\">github.com/h2g2bob/electiondata2024</a>.</p>")
     print(
         '<div>'
-        '<input type="text" id="searchin" onkeyup="do_filter()">'
+        '<label for="searchin"'
+        ' style="background: #ccc; border: 0.1em #ccc solid; border-radius: 0.5em; min-height: 0.8em; display: inline-block; padding: 0.3em; padding-left: 0.5em; padding-right: 0.5em;"'
+        ' >&#x1F50E;&nbsp;<input type="text" id="searchin" onkeyup="do_filter()"></label>'
         '<script type="application/javascript"><!--\n'
         'function do_filter() {\n'
         ' var value = document.getElementById("searchin").value;\n'
