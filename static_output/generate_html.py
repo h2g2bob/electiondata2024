@@ -81,7 +81,7 @@ def generate(shorttitle, sql, per_pary_sql):
     # We don't use postcode data on this page
     # print("<li>Contains Royal Mail data © Royal Mail copyright and database right 2023</li>")
     # print("<li>Contains data from Wikipedia covered by the Creative Commons license</li>")
-    print("<li>Contains data from Democracy Club provided under the Attribution 4.0 licence</li>")
+    print("<li>Contains data from Democracy Club provided under the Creative Commons Attribution 4.0 licence</li>")
     print("<li>Contains data from Office for National Statistics licensed under the Open Government Licence v.3.0</li>")
     print("<li>Hastily calculated by David Batley - my contribution cc-by 4.0</li>")
     print("</ul>")
